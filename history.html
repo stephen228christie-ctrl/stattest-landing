@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Analysis History — StatTest Selector</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0f;--surface:#111118;--surface2:#1a1a24;
+  --border:#2a2a38;--border2:#3a3a4e;
+  --accent:#7c6af7;--accent-glow:rgba(124,106,247,0.18);
+  --gold:#e8c547;--gold-dim:rgba(232,197,71,0.12);
+  --text:#f0eff8;--text2:#9997b0;--text3:#5a5872;
+  --green:#34d399;--green-dim:rgba(52,211,153,0.1);
+  --red:#f87171;--red-dim:rgba(248,113,113,0.1);
+  --amber:#fb923c;--amber-dim:rgba(251,146,60,0.1);
+  font-family:'DM Sans',sans-serif;color:var(--text);
+}
+body{background:var(--bg);min-height:100vh}
+body::before{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");pointer-events:none;z-index:0;opacity:.6}
+.orb{position:fixed;border-radius:50%;filter:blur(140px);pointer-events:none;z-index:0}
+.orb1{width:500px;height:500px;background:rgba(124,106,247,0.1);top:-150px;right:-100px}
+.orb2{width:300px;height:300px;background:rgba(52,211,153,0.06);bottom:100px;left:-80px}
+
+/* NAV */
+nav{position:sticky;top:0;z-index:100;height:60px;display:flex;align-items:center;justify-content:space-between;padding:0 32px;background:rgba(10,10,15,0.9);backdrop-filter:blur(16px);border-bottom:1px solid var(--border)}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:32px;height:32px;border-radius:8px;background:var(--accent);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.logo-text{font-family:'Instrument Serif',serif;font-size:18px;color:var(--text);letter-spacing:-.01em}
+.logo-text span{color:var(--accent)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-btn{padding:7px 16px;border-radius:9px;font-size:13px;font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:6px}
+.nav-btn.primary{background:var(--accent);color:#fff}
+.nav-btn.primary:hover{opacity:.9}
+.nav-btn.ghost{background:none;color:var(--text2);border:1px solid var(--border)}
+.nav-btn.ghost:hover{color:var(--text);border-color:var(--border2)}
+.avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,var(--accent),#3b82f6);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#fff;cursor:pointer;flex-shrink:0}
+
+/* PAGE */
+.page{max-width:860px;margin:0 auto;padding:36px 24px 60px;position:relative;z-index:1}
+
+/* PAGE HEADER */
+.page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.page-header-left h1{font-family:'Instrument Serif',serif;font-size:28px;color:var(--text);letter-spacing:-.02em;margin-bottom:4px}
+.page-header-left p{font-size:14px;color:var(--text2)}
+.back-link{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--text3);text-decoration:none;margin-bottom:12px;transition:color .15s}
+.back-link:hover{color:var(--accent)}
+
+/* SEARCH + FILTER BAR */
+.controls{display:flex;gap:10px;margin-bottom:20px;flex-wrap:wrap}
+.search-wrap{flex:1;min-width:200px;position:relative}
+.search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
+.search-input{width:100%;padding:10px 14px 10px 36px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13.5px;font-family:'DM Sans',sans-serif;outline:none;transition:border-color .15s}
+.search-input:focus{border-color:var(--accent)}
+.search-input::placeholder{color:var(--text3)}
+.filter-select{padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:13px;font-family:'DM Sans',sans-serif;outline:none;cursor:pointer;transition:border-color .15s}
+.filter-select:focus{border-color:var(--accent)}
+.filter-select option{background:var(--surface2)}
+
+/* RESULTS COUNT */
+.results-meta{font-size:12.5px;color:var(--text3);margin-bottom:14px}
+.results-meta span{color:var(--text2);font-weight:600}
+
+/* ANALYSIS CARDS */
+.analysis-list{display:flex;flex-direction:column;gap:10px}
+
+.analysis-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:border-color .2s}
+.analysis-card:hover{border-color:var(--border2)}
+.analysis-card.expanded{border-color:var(--accent)}
+
+.card-header{display:flex;align-items:center;gap:14px;padding:16px 20px;cursor:pointer;user-select:none}
+.card-emoji{width:40px;height:40px;border-radius:10px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.card-main{flex:1;min-width:0}
+.card-test{font-size:14px;font-weight:600;color:var(--text);margin-bottom:3px}
+.card-q{font-size:12.5px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.card-date{font-size:12px;color:var(--text3)}
+.card-badge{padding:3px 9px;border-radius:99px;font-size:11px;font-weight:600}
+.card-badge.param{background:rgba(124,106,247,.12);color:var(--accent)}
+.card-badge.nonparam{background:var(--green-dim);color:var(--green)}
+.card-badge.advanced{background:var(--amber-dim);color:var(--amber)}
+.card-chevron{color:var(--text3);font-size:14px;transition:transform .25s;flex-shrink:0}
+.analysis-card.expanded .card-chevron{transform:rotate(180deg);color:var(--accent)}
+
+/* CARD BODY */
+.card-body{display:none;border-top:1px solid var(--border);padding:20px}
+.analysis-card.expanded .card-body{display:block;animation:fadeIn .2s ease-out}
+@keyframes fadeIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+
+.detail-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto}
+.dtab{flex-shrink:0;padding:8px 14px;font-size:12px;font-weight:600;border:none;background:none;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text3);border-bottom:2.5px solid transparent;transition:all .15s;white-space:nowrap}
+.dtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.dtab:hover{color:var(--text2)}
+
+.detail-section{display:none}
+.detail-section.active{display:block;animation:fadeIn .2s ease-out}
+
+.detail-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3);margin-bottom:6px}
+.detail-text{font-size:13.5px;color:var(--text2);line-height:1.7;margin-bottom:16px}
+.detail-text.serif{font-family:Georgia,serif;background:var(--surface2);padding:12px 14px;border-radius:10px;border:1px solid var(--border)}
+
+.inputs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-bottom:16px}
+.input-chip{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px 12px}
+.input-chip-label{font-size:10px;color:var(--text3);margin-bottom:2px;text-transform:uppercase;letter-spacing:.06em}
+.input-chip-val{font-size:13px;font-weight:600;color:var(--text)}
+
+.card-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}
+.action-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;font-size:12.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;transition:all .15s;text-decoration:none}
+.action-btn.primary{background:var(--accent);color:#fff}
+.action-btn.primary:hover{opacity:.9}
+.action-btn.outline{background:none;color:var(--text2);border:1px solid var(--border)}
+.action-btn.outline:hover{border-color:var(--accent);color:var(--accent)}
+.action-btn.danger{background:none;color:var(--text3);border:1px solid var(--border);margin-left:auto}
+.action-btn.danger:hover{border-color:var(--red);color:var(--red)}
+
+/* LOCKED STATE */
+.locked-overlay{text-align:center;padding:32px 20px;background:linear-gradient(135deg,rgba(124,106,247,.06),var(--surface));border:1px solid rgba(124,106,247,.2);border-radius:14px;margin-top:10px}
+.locked-overlay .lock-icon{font-size:28px;margin-bottom:10px}
+.locked-overlay h3{font-size:15px;font-weight:700;color:var(--text);margin-bottom:6px}
+.locked-overlay p{font-size:13px;color:var(--text2);margin-bottom:16px;line-height:1.6}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:64px 20px}
+.empty-state .empty-icon{font-size:40px;margin-bottom:14px}
+.empty-state h3{font-size:17px;font-weight:700;color:var(--text);margin-bottom:7px}
+.empty-state p{font-size:14px;color:var(--text3);margin-bottom:20px;line-height:1.6}
+.btn-new{display:inline-flex;align-items:center;gap:8px;padding:11px 22px;border-radius:12px;background:var(--accent);color:#fff;font-size:14px;font-weight:600;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:none;transition:all .2s;box-shadow:0 0 24px rgba(124,106,247,.25)}
+.btn-new:hover{opacity:.9;transform:translateY(-1px)}
+
+/* COPY BTN */
+.copy-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;background:var(--surface2);border:1px solid var(--border);font-size:11px;color:var(--text3);cursor:pointer;font-weight:600;font-family:'DM Sans',sans-serif;transition:all .15s;float:right;margin-bottom:8px}
+.copy-btn:hover{border-color:var(--accent);color:var(--accent)}
+
+/* DELETE MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+.modal-bg.show{display:flex}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:28px;max-width:380px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.modal h3{font-size:18px;font-weight:700;color:var(--text);margin-bottom:8px;font-family:'Instrument Serif',serif}
+.modal p{font-size:13.5px;color:var(--text2);margin-bottom:20px;line-height:1.6}
+.modal-btns{display:flex;gap:9px}
+.modal-btn{flex:1;padding:10px;border-radius:10px;font-size:13.5px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif;border:none;transition:all .15s}
+.modal-btn.cancel{background:var(--surface2);color:var(--text2)}
+.modal-btn.cancel:hover{background:var(--border)}
+.modal-btn.delete{background:var(--red);color:#fff}
+.modal-btn.delete:hover{opacity:.9}
+
+@media(max-width:640px){
+  nav{padding:0 16px}
+  .page{padding:24px 16px 48px}
+  .card-right .card-badge{display:none}
+  .card-right .card-date{display:none}
+}
+</style>
+</head>
+<body>
+<div class="orb orb1"></div>
+<div class="orb orb2"></div>
+
+<!-- DELETE MODAL -->
+<div class="modal-bg" id="delete-modal" onclick="closeDeleteModal(event)">
+  <div class="modal">
+    <h3>Delete this analysis?</h3>
+    <p>This will permanently remove the analysis from your history. This action cannot be undone.</p>
+    <div class="modal-btns">
+      <button class="modal-btn cancel" onclick="document.getElementById('delete-modal').classList.remove('show')">Cancel</button>
+      <button class="modal-btn delete" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="index.html">
+    <div class="logo-mark">
+      <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M3 13l3.5-5 3.5 4 2.5-3 3 4" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+    <span class="logo-text">Stat<span>Test</span></span>
+  </a>
+  <div class="nav-right">
+    <a class="nav-btn ghost" href="dashboard.html">Dashboard</a>
+    <a class="nav-btn primary" href="https://stats-test-selector.vercel.app/" target="_blank">+ New analysis</a>
+    <div class="avatar" id="nav-avatar">?</div>
+  </div>
+</nav>
+
+<div class="page">
+  <a class="back-link" href="dashboard.html">← Back to dashboard</a>
+
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Analysis History</h1>
+      <p>Every test you've run — with full explanations and APA write-ups saved</p>
+    </div>
+  </div>
+
+  <!-- SEARCH + FILTER -->
+  <div class="controls">
+    <div class="search-wrap">
+      <svg class="search-icon" width="15" height="15" viewBox="0 0 15 15" fill="none"><circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.4"/><path d="M11 11l2.5 2.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+      <input class="search-input" id="search-input" placeholder="Search by test name or research question…" oninput="filterAnalyses()"/>
+    </div>
+    <select class="filter-select" id="filter-cat" onchange="filterAnalyses()">
+      <option value="all">All categories</option>
+      <option value="Parametric">Parametric</option>
+      <option value="Non-Parametric">Non-Parametric</option>
+      <option value="Advanced">Advanced</option>
+    </select>
+    <select class="filter-select" id="filter-sort" onchange="filterAnalyses()">
+      <option value="newest">Newest first</option>
+      <option value="oldest">Oldest first</option>
+    </select>
+  </div>
+
+  <div class="results-meta" id="results-meta"></div>
+
+  <!-- LIST -->
+  <div class="analysis-list" id="analysis-list"></div>
+
+  <!-- PRO GATE (shown when free user has more history locked) -->
+  <div class="locked-overlay" id="pro-gate" style="display:none">
+    <div class="lock-icon">🔒</div>
+    <h3>Full history is a Pro feature</h3>
+    <p>Upgrade to Pro to view, search, and export all your previous analyses — saved indefinitely.</p>
+    <a class="action-btn primary" href="upgrade.html">Unlock history — ₹99/mo</a>
+  </div>
+</div>
+
+<script>
+// ── AUTH GUARD ─────────────────────────────────────────────────────────────
+const SUPABASE_URL = 'https://vkytcuefcddnynesthlq.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZreXRjdWVmY2RkbnluZXN0aGxxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA0MDI5NzEsImV4cCI6MjA5NTk3ODk3MX0.yiirwF57nVW93GcoZCzgu4wujueTOWcdqF6B_BcOVw4';
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+(async function initHistory(){
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { window.location.href = 'login.html'; return; }
+  const name = session.user.user_metadata?.name || session.user.email.split('@')[0];
+  document.getElementById('nav-avatar').textContent = name[0].toUpperCase();
+})();
+
+// ── DEMO DATA ──────────────────────────────────────────────────────────────
+const USER_PLAN = 'free'; // 'free' | 'pro' | 'pass'
+const FREE_HISTORY_LIMIT = 3;
+
+const ALL_ANALYSES = [
+  {
+    id:1, emoji:'👥', date:'2 Jun 2026', dateSort: new Date('2026-06-02'),
+    test:"Welch's Independent t-Test", category:'Parametric',
+    question:'Do men and women differ in anxiety scores (GAD-7)?',
+    why:"The modern default for two independent groups. Welch's doesn't assume equal variances, performing equally well when variances are equal and better when they differ (Field, 2018).",
+    assumptions:['Continuous DV','Approximately normal per group (or n>30 by CLT)','Independent observations','No assumption of equal variances required'],
+    apa:"A Welch's independent-samples t-test indicated that anxiety scores [significantly/did not significantly] differ between [Group 1] (M=___, SD=___) and [Group 2] (M=___, SD=___), t(df)=___, p=.___, d=___.",
+    inputs:{Objective:'Compare groups',Groups:'2 groups',Design:'Independent samples','DV type':'Continuous',Normality:'Normal'}
+  },
+  {
+    id:2, emoji:'🔗', date:'28 May 2026', dateSort: new Date('2026-05-28'),
+    test:"Spearman's Rank Correlation (ρ)", category:'Non-Parametric',
+    question:'Is social support related to wellbeing scores (WEMWBS)?',
+    why:"Uses ranks — robust to outliers, no normality required. Preferred when data is ordinal or non-normal.",
+    assumptions:['Ordinal or continuous variables','Monotonic relationship — check scatter plot','No normality required'],
+    apa:"A Spearman's rank-order correlation indicated a [significant/non-significant] [positive/negative] relationship between [Var 1] and [Var 2], ρ(N−2)=.___, p=.___.","inputs":{Objective:'Relationship',Type:'Two continuous vars','DV type':'Continuous',Normality:'Non-normal'}
+  },
+  {
+    id:3, emoji:'📊', date:'20 May 2026', dateSort: new Date('2026-05-20'),
+    test:'One-Way ANOVA', category:'Parametric',
+    question:'Does teaching method affect student wellbeing across 3 groups?',
+    why:"Tests whether at least one group mean differs — protecting against inflated Type I error from multiple t-tests.",
+    assumptions:['Continuous DV','Normality within each group','Homogeneity of variance (Levene\'s test)','Independent observations'],
+    apa:"A one-way ANOVA indicated a [significant/non-significant] effect of [IV] on [DV], F(df₁,df₂)=___, p=.___, η²=___. Post-hoc comparisons (Tukey HSD) [showed/showed no significant differences].",
+    inputs:{Objective:'Compare groups',Groups:'3+ groups',Design:'Independent','DV type':'Continuous',Normality:'Normal'}
+  },
+  {
+    id:4, emoji:'🔄', date:'14 May 2026', dateSort: new Date('2026-05-14'),
+    test:'Paired Samples t-Test', category:'Parametric',
+    question:'Did PHQ-9 scores change after the mindfulness intervention?',
+    why:"Analyses difference scores within the same participants — more powerful than an independent t-test by controlling for individual variation.",
+    assumptions:['Continuous DV','Same participants at both time points','Difference scores approximately normal','No significant outliers in differences'],
+    apa:"A paired-samples t-test revealed that [DV] [significantly/did not significantly] [increase/decrease] from [Time 1] (M=___, SD=___) to [Time 2] (M=___, SD=___), t(df)=___, p=.___, d=___.",
+    inputs:{Objective:'Compare groups',Groups:'2 groups',Design:'Paired','DV type':'Continuous',Normality:'Normal'}
+  },
+  {
+    id:5, emoji:'🔀', date:'8 May 2026', dateSort: new Date('2026-05-08'),
+    test:'Mediation / Moderation Analysis', category:'Advanced',
+    question:'Does self-efficacy mediate the stress–performance relationship?',
+    why:"Reveals mechanisms (X→M→Y). Requires causal ordering established by theory — not just statistical association.",
+    assumptions:['Causal ordering grounded in theory','Bootstrapping recommended (n≥200)','Measurement reliability across all variables'],
+    apa:"A mediation analysis using bootstrapping (5,000 samples; Hayes, 2022) indicated a [significant/non-significant] indirect effect of [X] on [Y] through [M], b=.___, 95% CI [___,___].",
+    inputs:{Objective:'Relationship',Type:'Mediation/Moderation'}
+  },
+];
+
+let deleteTargetId = null;
+let activeTab = {};
+
+// ── FILTER & RENDER ────────────────────────────────────────────────────────
+function filterAnalyses(){
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const cat = document.getElementById('filter-cat').value;
+  const sort = document.getElementById('filter-sort').value;
+
+  let filtered = ALL_ANALYSES.filter(a=>{
+    const matchQ = !q || a.test.toLowerCase().includes(q) || a.question.toLowerCase().includes(q);
+    const matchCat = cat==='all' || a.category===cat;
+    return matchQ && matchCat;
+  });
+
+  filtered.sort((a,b)=> sort==='newest' ? b.dateSort-a.dateSort : a.dateSort-b.dateSort);
+
+  renderList(filtered);
+}
+
+function renderList(analyses){
+  const list = document.getElementById('analysis-list');
+  const meta = document.getElementById('results-meta');
+  const gate = document.getElementById('pro-gate');
+  const isPro = USER_PLAN !== 'free';
+  const visibleCount = isPro ? analyses.length : Math.min(analyses.length, FREE_HISTORY_LIMIT);
+
+  meta.innerHTML = `Showing <span>${visibleCount}</span> of <span>${analyses.length}</span> analyses`;
+
+  if(analyses.length===0){
+    list.innerHTML=`<div class="empty-state"><div class="empty-icon">🔍</div><h3>No results found</h3><p>Try a different search term or filter.</p></div>`;
+    gate.style.display='none';
+    return;
+  }
+
+  const catClass={Parametric:'param','Non-Parametric':'nonparam',Advanced:'advanced'};
+
+  list.innerHTML = analyses.slice(0, visibleCount).map(a=>{
+    const tab = activeTab[a.id] || 'why';
+    return `
+    <div class="analysis-card" id="card-${a.id}">
+      <div class="card-header" onclick="toggleCard(${a.id})">
+        <div class="card-emoji">${a.emoji}</div>
+        <div class="card-main">
+          <div class="card-test">${a.test}</div>
+          <div class="card-q">${a.question}</div>
+        </div>
+        <div class="card-right">
+          <span class="card-badge ${catClass[a.category]||'param'}">${a.category}</span>
+          <span class="card-date">${a.date}</span>
+          <span class="card-chevron">▾</span>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="detail-tabs">
+          ${[['why','Why this test?'],['ass','Assumptions'],['apa','APA Write-up'],['inputs','Your inputs']].map(([id,lbl])=>`
+            <button class="dtab ${tab===id?'active':''}" onclick="setDetailTab(${a.id},'${id}')">${lbl}</button>
+          `).join('')}
+        </div>
+
+        <div class="detail-section ${tab==='why'?'active':''}" id="tab-${a.id}-why">
+          <div class="detail-label">Why this test?</div>
+          <div class="detail-text">${a.why}</div>
+        </div>
+
+        <div class="detail-section ${tab==='ass'?'active':''}" id="tab-${a.id}-ass">
+          <div class="detail-label">Assumptions to verify</div>
+          ${a.assumptions.map((ass,i)=>`
+            <div style="display:flex;align-items:flex-start;gap:9px;padding:8px 10px;border-radius:9px;background:var(--surface2);margin-bottom:7px">
+              <span style="width:19px;height:19px;border-radius:50%;background:rgba(124,106,247,.2);color:var(--accent);font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px">${i+1}</span>
+              <span style="font-size:13px;color:var(--text2);line-height:1.6">${ass}</span>
+            </div>
+          `).join('')}
+        </div>
+
+        <div class="detail-section ${tab==='apa'?'active':''}" id="tab-${a.id}-apa">
+          <button class="copy-btn" onclick="copyAPA(${a.id})">📋 Copy</button>
+          <div class="detail-label">APA 7th Edition Template</div>
+          <div class="detail-text serif" id="apa-text-${a.id}">${a.apa}</div>
+          <p style="font-size:11.5px;color:var(--text3);margin-top:8px">Fill in the blanks — use <strong style="color:var(--text2)">[significantly]</strong> if p &lt; .05, or <strong style="color:var(--text2)">[not significantly]</strong> if p ≥ .05.</p>
+        </div>
+
+        <div class="detail-section ${tab==='inputs'?'active':''}" id="tab-${a.id}-inputs">
+          <div class="detail-label">Inputs you selected</div>
+          <div class="inputs-grid">
+            ${Object.entries(a.inputs).map(([k,v])=>`
+              <div class="input-chip">
+                <div class="input-chip-label">${k}</div>
+                <div class="input-chip-val">${v}</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+
+        <div class="card-actions">
+          <a class="action-btn primary" href="https://stats-test-selector.vercel.app/" target="_blank">↗ Reopen analysis</a>
+          <button class="action-btn outline" onclick="copyAPA(${a.id})">📋 Copy APA</button>
+          <button class="action-btn danger" onclick="openDeleteModal(${a.id})">🗑 Delete</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Show pro gate if free user has more history
+  gate.style.display = (!isPro && ALL_ANALYSES.length > FREE_HISTORY_LIMIT) ? 'block' : 'none';
+}
+
+function toggleCard(id){
+  const card = document.getElementById('card-'+id);
+  card.classList.toggle('expanded');
+}
+
+function setDetailTab(cardId, tab){
+  activeTab[cardId] = tab;
+  ['why','ass','apa','inputs'].forEach(t=>{
+    const sec = document.getElementById(`tab-${cardId}-${t}`);
+    if(sec) sec.className = `detail-section ${t===tab?'active':''}`;
+  });
+  document.querySelectorAll(`#card-${cardId} .dtab`).forEach((btn,i)=>{
+    const tabs=['why','ass','apa','inputs'];
+    btn.classList.toggle('active', tabs[i]===tab);
+  });
+}
+
+function copyAPA(id){
+  const el = document.getElementById('apa-text-'+id);
+  if(!el) return;
+  navigator.clipboard?.writeText(el.textContent).catch(()=>{});
+  const btn = el.closest('.card-body').querySelector('.copy-btn');
+  if(btn){btn.textContent='✓ Copied!';setTimeout(()=>btn.textContent='📋 Copy',2000);}
+}
+
+function openDeleteModal(id){
+  deleteTargetId = id;
+  document.getElementById('delete-modal').classList.add('show');
+}
+
+function closeDeleteModal(e){
+  if(e.target.id==='delete-modal') document.getElementById('delete-modal').classList.remove('show');
+}
+
+function confirmDelete(){
+  if(deleteTargetId){
+    const idx = ALL_ANALYSES.findIndex(a=>a.id===deleteTargetId);
+    if(idx>-1) ALL_ANALYSES.splice(idx,1);
+    deleteTargetId=null;
+    document.getElementById('delete-modal').classList.remove('show');
+    filterAnalyses();
+  }
+}
+
+// Initial render
+filterAnalyses();
+</script>
+</body>
+</html>
