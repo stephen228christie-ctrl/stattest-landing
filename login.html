@@ -120,6 +120,52 @@ main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 
   .name-row{grid-template-columns:1fr}
   nav{padding:0 16px}
 }
+
+/* ── MOTION ENHANCEMENTS ─────────────────────────────── */
+:root{
+  --ease-expo:cubic-bezier(0.16,1,0.3,1);
+  --ease-quart:cubic-bezier(0.25,1,0.5,1);
+  --ease-in:cubic-bezier(0.4,0,1,1);
+}
+
+/* Auth card — materialise on load (opacity + translateY + blur) */
+.auth-card{
+  animation:cardIn .5s var(--ease-expo) both;
+}
+@keyframes cardIn{
+  from{opacity:0;transform:translateY(20px);filter:blur(8px)}
+  to{opacity:1;transform:none;filter:blur(0px)}
+}
+
+/* Panel switch — fade between login/signup/forgot panels */
+#panel-login,#panel-signup,#panel-forgot{
+  animation:panelIn .25s var(--ease-expo) both
+}
+@keyframes panelIn{
+  from{opacity:0;filter:blur(3px)}
+  to{opacity:1;filter:blur(0px)}
+}
+
+/* Form input focus — smooth border glow */
+.form-input{transition:border-color .18s var(--ease-quart),background .18s var(--ease-quart),box-shadow .18s var(--ease-quart)}
+.form-input:focus{box-shadow:0 0 0 3px rgba(124,106,247,.15)}
+
+/* Submit button press */
+.btn-submit{transition:opacity .2s var(--ease-quart),transform .12s var(--ease-quart),box-shadow .2s}
+.btn-submit:not(:disabled):active{transform:scale(0.97);transition-duration:60ms}
+
+/* Google button press */
+.btn-google{transition:border-color .15s var(--ease-quart),background .15s var(--ease-quart),transform .12s var(--ease-quart)}
+.btn-google:active{transform:scale(0.98);transition-duration:60ms}
+
+/* ── prefers-reduced-motion ─── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important
+  }
+}
 </style>
 </head>
 <body>
@@ -309,6 +355,13 @@ function switchTab(tab) {
   document.getElementById('panel-login').style.display = tab === 'login' ? 'block' : 'none';
   document.getElementById('panel-signup').style.display = tab === 'signup' ? 'block' : 'none';
   document.getElementById('panel-forgot').style.display = tab === 'forgot' ? 'block' : 'none';
+  // Restart panel entrance animation on the active panel
+  const activePanel = document.getElementById('panel-' + tab);
+  if(activePanel){
+    activePanel.style.animation = 'none';
+    activePanel.offsetHeight; // reflow
+    activePanel.style.animation = '';
+  }
   // Clear all alerts
   document.querySelectorAll('.alert').forEach(el => { el.classList.remove('show'); el.textContent = ''; });
   document.querySelectorAll('.error-msg').forEach(el => el.classList.remove('show'));

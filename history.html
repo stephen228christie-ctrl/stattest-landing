@@ -153,6 +153,61 @@ nav{position:sticky;top:0;z-index:100;height:60px;display:flex;align-items:cente
   .card-right .card-badge{display:none}
   .card-right .card-date{display:none}
 }
+
+/* ── MOTION ENHANCEMENTS ─────────────────────────────── */
+:root{
+  --ease-expo:cubic-bezier(0.16,1,0.3,1);
+  --ease-quart:cubic-bezier(0.25,1,0.5,1);
+}
+
+/* Page header entrance */
+.page-header{animation:fadeUp .45s var(--ease-expo) both}
+.controls{animation:fadeUp .45s var(--ease-expo) 60ms both}
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(14px);filter:blur(5px)}
+  to{opacity:1;transform:none;filter:blur(0px)}
+}
+
+/* Analysis cards — stagger the first 6 on render */
+.analysis-card:nth-child(1){animation:cardIn .4s var(--ease-expo) 0ms both}
+.analysis-card:nth-child(2){animation:cardIn .4s var(--ease-expo) 55ms both}
+.analysis-card:nth-child(3){animation:cardIn .4s var(--ease-expo) 110ms both}
+.analysis-card:nth-child(4){animation:cardIn .4s var(--ease-expo) 165ms both}
+.analysis-card:nth-child(5){animation:cardIn .4s var(--ease-expo) 220ms both}
+.analysis-card:nth-child(6){animation:cardIn .4s var(--ease-expo) 275ms both}
+@keyframes cardIn{
+  from{opacity:0;transform:translateY(12px);filter:blur(4px)}
+  to{opacity:1;transform:none;filter:blur(0px)}
+}
+
+/* Card body — smooth reveal */
+.analysis-card.expanded .card-body{
+  animation:bodyIn .25s var(--ease-expo) both
+}
+@keyframes bodyIn{
+  from{opacity:0;filter:blur(3px)}
+  to{opacity:1;filter:blur(0px)}
+}
+
+/* Card hover */
+.analysis-card{transition:border-color .2s var(--ease-quart),transform .25s var(--ease-expo)}
+.analysis-card:hover{transform:translateY(-2px)}
+
+/* Action buttons */
+.action-btn{transition:border-color .15s var(--ease-quart),color .15s,background .15s,transform .12s var(--ease-quart)}
+.action-btn:active{transform:scale(0.97);transition-duration:60ms}
+
+/* Detail tab underline slide */
+.dtab{transition:color .15s var(--ease-quart),border-bottom-color .15s var(--ease-quart)}
+
+/* ── prefers-reduced-motion ─── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important
+  }
+}
 </style>
 </head>
 <body>

@@ -27,6 +27,9 @@
   --red:#f87171;
   font-family:'DM Sans',sans-serif;
   color:var(--text);
+  --ease-expo:cubic-bezier(0.16,1,0.3,1);
+  --ease-quart:cubic-bezier(0.25,1,0.5,1);
+  --ease-in:cubic-bezier(0.4,0,1,1);
 }
 
 html{scroll-behavior:smooth}
@@ -347,11 +350,11 @@ footer{
 
 /* ── ANIMATIONS ── */
 @keyframes fadeUp{
-  from{opacity:0;transform:translateY(16px)}
-  to{opacity:1;transform:none}
+  from{opacity:0;transform:translateY(16px);filter:blur(5px)}
+  to{opacity:1;transform:none;filter:blur(0px)}
 }
-.reveal{opacity:0;transform:translateY(20px);transition:opacity .6s ease,transform .6s ease}
-.reveal.visible{opacity:1;transform:none}
+.reveal{opacity:0;transform:translateY(18px);filter:blur(6px);transition:opacity .55s var(--ease-expo),transform .55s var(--ease-expo),filter .55s var(--ease-expo)}
+.reveal.visible{opacity:1;transform:none;filter:blur(0px)}
 
 /* ── MOBILE ── */
 @media(max-width:640px){
@@ -363,6 +366,72 @@ footer{
   .step{grid-template-columns:44px 1fr;gap:16px}
   .cta-banner{margin:0 16px 64px;padding:40px 24px}
   footer{padding:24px 16px;flex-direction:column;text-align:center}
+}
+
+/* ── MOTION ENHANCEMENTS ─────────────────────────────────────────────── */
+
+/* Proof bar — staggered number entrance on load */
+.proof-stat .proof-num{
+  animation:numIn .55s var(--ease-expo) both;
+  display:inline-block;
+}
+.proof-stat:nth-child(1) .proof-num{animation-delay:200ms}
+.proof-stat:nth-child(2) .proof-num{animation-delay:300ms}
+.proof-stat:nth-child(3) .proof-num{animation-delay:400ms}
+.proof-stat:nth-child(4) .proof-num{animation-delay:500ms}
+@keyframes numIn{
+  from{opacity:0;transform:translateY(10px);filter:blur(5px)}
+  to{opacity:1;transform:none;filter:blur(0px)}
+}
+
+/* Steps — children stagger in from the left when parent reveal fires */
+.steps .step{opacity:0;transform:translateX(-10px);filter:blur(3px)}
+.steps.visible .step{
+  animation:stepIn .45s var(--ease-expo) both;
+  opacity:1;transform:none;filter:blur(0px)
+}
+.steps.visible .step:nth-child(1){animation-delay:0ms}
+.steps.visible .step:nth-child(2){animation-delay:80ms}
+.steps.visible .step:nth-child(3){animation-delay:160ms}
+.steps.visible .step:nth-child(4){animation-delay:240ms}
+.steps.visible .step:nth-child(5){animation-delay:320ms}
+@keyframes stepIn{
+  from{opacity:0;transform:translateX(-12px);filter:blur(4px)}
+  to{opacity:1;transform:none;filter:blur(0px)}
+}
+
+/* Pricing cards — smooth hover lift */
+.price-card{
+  transition:border-color .2s var(--ease-quart),transform .3s var(--ease-expo),box-shadow .3s var(--ease-expo)
+}
+.price-card:hover{transform:translateY(-5px);box-shadow:0 24px 48px rgba(0,0,0,.35)}
+.price-card.featured:hover{transform:translateY(-6px);box-shadow:0 24px 56px rgba(124,106,247,.2)}
+
+/* Testimonial cards — subtle hover lift */
+.tcard{transition:border-color .2s var(--ease-quart),transform .3s var(--ease-expo)}
+.tcard:hover{transform:translateY(-3px)}
+
+/* Button tactile press feedback (Emil — immediate, no queue) */
+.btn-main,.btn-ghost,.nav-cta{
+  transition:opacity .15s var(--ease-quart),transform .15s var(--ease-quart),box-shadow .15s var(--ease-quart)
+}
+.btn-main:active,.btn-ghost:active,.nav-cta:active{
+  transform:scale(0.97)!important;
+  transition-duration:60ms
+}
+
+/* Nav link hover — micro transition */
+.nav-link{transition:color .15s var(--ease-quart),background .15s var(--ease-quart)}
+
+/* CTA banner button — inherit btn-main styles, no extra needed */
+
+/* ── prefers-reduced-motion ─── */
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important
+  }
 }
 </style>
 </head>
