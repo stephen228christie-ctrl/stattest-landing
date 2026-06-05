@@ -368,6 +368,62 @@ footer{
   footer{padding:24px 16px;flex-direction:column;text-align:center}
 }
 
+/* ── HERO STATISTICAL BACKGROUND ────────────────────── */
+.hero-chart{
+  position:absolute;
+  /* break out of hero max-width so it spans full viewport */
+  left:calc(50% - 50vw);
+  width:100vw;
+  bottom:-20px;
+  top:0;
+  z-index:0;
+  pointer-events:none;
+  overflow:visible;
+  /* fade top so headline reads cleanly over the chart */
+  -webkit-mask-image:linear-gradient(to bottom,transparent 0%,black 35%,black 100%);
+  mask-image:linear-gradient(to bottom,transparent 0%,black 35%,black 100%);
+}
+.hero-chart svg{width:100%;height:100%}
+
+/* Ensure hero text renders above the chart */
+.hero>*:not(.hero-chart){position:relative;z-index:1}
+
+/* ── Bell curve draw-on ── */
+.hc-curve{
+  stroke-dasharray:1720;
+  stroke-dashoffset:1720;
+  animation:drawCurve 2.5s cubic-bezier(0.4,0,0.2,1) 0.35s forwards;
+}
+@keyframes drawCurve{to{stroke-dashoffset:0}}
+
+/* ── Confidence interval fills ── */
+.hc-fill95{animation:fillIn .8s ease 2.6s forwards}
+.hc-fill68{animation:fillIn .8s ease 2.85s forwards}
+@keyframes fillIn{to{opacity:1}}
+
+/* ── σ reference lines & labels ── */
+.hc-sigma{animation:sigmaIn .5s var(--ease-expo) 2.7s forwards}
+.hc-labels{animation:sigmaIn .5s var(--ease-expo) 3.0s forwards}
+@keyframes sigmaIn{to{opacity:1}}
+
+/* ── Data scatter points ── */
+.hc-dp{
+  transform-box:fill-box;
+  transform-origin:center;
+  opacity:0;
+  animation:dotIn .35s var(--ease-expo) both;
+  /* each circle has animation-delay set inline */
+}
+@keyframes dotIn{
+  from{opacity:0;transform:scale(0.5)}
+  to{opacity:0.75;transform:scale(1)}
+}
+
+/* Mobile: reduce opacity so it doesn't compete with text */
+@media(max-width:640px){
+  .hero-chart{opacity:.5}
+}
+
 /* ── MOTION ENHANCEMENTS ─────────────────────────────────────────────── */
 
 /* Proof bar — staggered number entrance on load */
@@ -461,6 +517,94 @@ footer{
 
 <!-- HERO -->
 <div class="hero">
+
+  <!-- Animated statistical visualization background -->
+  <div class="hero-chart" aria-hidden="true">
+    <svg viewBox="0 0 1400 480" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMax meet">
+      <defs>
+        <linearGradient id="grad68" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7c6af7" stop-opacity="0.1"/>
+          <stop offset="100%" stop-color="#7c6af7" stop-opacity="0.01"/>
+        </linearGradient>
+        <linearGradient id="grad95" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#7c6af7" stop-opacity="0.05"/>
+          <stop offset="100%" stop-color="#7c6af7" stop-opacity="0.005"/>
+        </linearGradient>
+      </defs>
+
+      <!-- Faint x-axis -->
+      <line x1="0" y1="450" x2="1400" y2="450" stroke="#7c6af7" stroke-width="0.5" opacity="0.15"/>
+
+      <!-- 95% CI fill area -->
+      <path class="hc-fill95"
+        d="M 200,418 C 290,385 375,300 450,262 C 530,224 615,108 700,98 C 785,108 870,224 950,262 C 1025,300 1110,385 1200,418 L 1200,450 L 200,450 Z"
+        fill="url(#grad95)" opacity="0"/>
+
+      <!-- 68% CI fill area -->
+      <path class="hc-fill68"
+        d="M 450,262 C 530,224 615,108 700,98 C 785,108 870,224 950,262 L 950,450 L 450,450 Z"
+        fill="url(#grad68)" opacity="0"/>
+
+      <!-- σ dashed reference lines -->
+      <g class="hc-sigma" opacity="0">
+        <line x1="200"  y1="418" x2="200"  y2="455" stroke="#7c6af7" stroke-width="1"   stroke-dasharray="3,4" opacity="0.4"/>
+        <line x1="450"  y1="262" x2="450"  y2="455" stroke="#7c6af7" stroke-width="1"   stroke-dasharray="3,4" opacity="0.5"/>
+        <line x1="700"  y1="98"  x2="700"  y2="455" stroke="#7c6af7" stroke-width="1.5" stroke-dasharray="4,4" opacity="0.6"/>
+        <line x1="950"  y1="262" x2="950"  y2="455" stroke="#7c6af7" stroke-width="1"   stroke-dasharray="3,4" opacity="0.5"/>
+        <line x1="1200" y1="418" x2="1200" y2="455" stroke="#7c6af7" stroke-width="1"   stroke-dasharray="3,4" opacity="0.4"/>
+      </g>
+
+      <!-- σ labels -->
+      <g class="hc-labels" opacity="0" font-family="DM Sans,sans-serif" font-size="11" text-anchor="middle">
+        <text x="200"  y="472" fill="#3a3a4e">−2σ</text>
+        <text x="450"  y="472" fill="#4a4a62">−1σ</text>
+        <text x="700"  y="472" fill="#7c6af7" font-weight="600">μ</text>
+        <text x="950"  y="472" fill="#4a4a62">+1σ</text>
+        <text x="1200" y="472" fill="#3a3a4e">+2σ</text>
+      </g>
+
+      <!-- Bell curve — drawn on via stroke-dashoffset -->
+      <path class="hc-curve"
+        d="M 0,450 C 80,450 150,448 200,418 C 290,385 375,300 450,262 C 530,224 615,108 700,98 C 785,108 870,224 950,262 C 1025,300 1110,385 1200,418 C 1250,448 1320,450 1400,450"
+        fill="none" stroke="#7c6af7" stroke-width="1.5" opacity="0.65"/>
+
+      <!-- Data scatter points — near μ (gold, significant) -->
+      <circle class="hc-dp" cx="668" cy="92"  r="3"   fill="#e8c547" style="animation-delay:2.5s"/>
+      <circle class="hc-dp" cx="700" cy="86"  r="3.5" fill="#e8c547" style="animation-delay:2.58s"/>
+      <circle class="hc-dp" cx="728" cy="95"  r="2.5" fill="#e8c547" style="animation-delay:2.66s"/>
+      <circle class="hc-dp" cx="692" cy="110" r="2"   fill="#7c6af7" style="animation-delay:2.74s"/>
+      <circle class="hc-dp" cx="714" cy="80"  r="2"   fill="#7c6af7" style="animation-delay:2.82s"/>
+      <circle class="hc-dp" cx="682" cy="106" r="2"   fill="#7c6af7" style="animation-delay:2.9s"/>
+
+      <!-- ±1σ region (accent) -->
+      <circle class="hc-dp" cx="428" cy="252" r="2"   fill="#7c6af7" style="animation-delay:2.96s"/>
+      <circle class="hc-dp" cx="458" cy="268" r="2.5" fill="#7c6af7" style="animation-delay:3.02s"/>
+      <circle class="hc-dp" cx="486" cy="240" r="2"   fill="#7c6af7" style="animation-delay:3.08s"/>
+      <circle class="hc-dp" cx="512" cy="255" r="2"   fill="#34d399" style="animation-delay:3.14s"/>
+      <circle class="hc-dp" cx="548" cy="225" r="2.5" fill="#7c6af7" style="animation-delay:3.2s"/>
+      <circle class="hc-dp" cx="568" cy="192" r="2"   fill="#7c6af7" style="animation-delay:3.26s"/>
+      <circle class="hc-dp" cx="836" cy="208" r="2"   fill="#7c6af7" style="animation-delay:3.32s"/>
+      <circle class="hc-dp" cx="862" cy="240" r="2.5" fill="#34d399" style="animation-delay:3.38s"/>
+      <circle class="hc-dp" cx="898" cy="258" r="2"   fill="#7c6af7" style="animation-delay:3.44s"/>
+      <circle class="hc-dp" cx="926" cy="265" r="2"   fill="#7c6af7" style="animation-delay:3.5s"/>
+      <circle class="hc-dp" cx="958" cy="252" r="2.5" fill="#7c6af7" style="animation-delay:3.56s"/>
+
+      <!-- ±2σ region -->
+      <circle class="hc-dp" cx="198" cy="412" r="2"   fill="#7c6af7" style="animation-delay:3.62s"/>
+      <circle class="hc-dp" cx="228" cy="422" r="1.5" fill="#7c6af7" style="animation-delay:3.68s"/>
+      <circle class="hc-dp" cx="258" cy="430" r="1.5" fill="#7c6af7" style="animation-delay:3.74s"/>
+      <circle class="hc-dp" cx="1148" cy="420" r="1.5" fill="#7c6af7" style="animation-delay:3.8s"/>
+      <circle class="hc-dp" cx="1180" cy="415" r="2"   fill="#7c6af7" style="animation-delay:3.86s"/>
+      <circle class="hc-dp" cx="1210" cy="426" r="1.5" fill="#7c6af7" style="animation-delay:3.92s"/>
+
+      <!-- Outliers (red, small) -->
+      <circle class="hc-dp" cx="86"   cy="447" r="1.5" fill="#f87171" style="animation-delay:3.98s"/>
+      <circle class="hc-dp" cx="148"  cy="444" r="1.5" fill="#f87171" style="animation-delay:4.04s"/>
+      <circle class="hc-dp" cx="1260" cy="446" r="1.5" fill="#f87171" style="animation-delay:4.1s"/>
+      <circle class="hc-dp" cx="1318" cy="447" r="1.5" fill="#f87171" style="animation-delay:4.16s"/>
+    </svg>
+  </div>
+
   <div class="hero-eyebrow">
     <span></span>
     Built for psychology dissertations
